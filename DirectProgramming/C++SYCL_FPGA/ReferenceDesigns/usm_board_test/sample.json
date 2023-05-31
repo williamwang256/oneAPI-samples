@@ -1,0 +1,77 @@
+{
+  "guid": "3228581F-9DF8-4696-9B1C-0B31286B97C3",
+  "name": "USM Board Test",
+  "categories": ["Toolkit/oneAPI Direct Programming/C++SYCL FPGA/Reference Designs"],
+  "description": "",
+  "toolchain": ["icpx"],
+  "os": ["linux", "windows"],
+  "builder": ["ide", "cmake"],
+  "targetDevice": ["FPGA"],
+  "languages": [{"cpp":{}}],
+  "commonFolder": {
+    "base": "../..",
+    "include": [
+      "README.md",
+      "ReferenceDesigns/usm_board_test",
+      "include"
+    ],
+    "exclude": []
+  },
+  "ciTests": {
+    "linux": [
+      {
+        "id": "fpga_emu",
+        "env": [
+          "export CL_CONFIG_CPU_FORCE_PRIVATE_MEM_SIZE=32MB"
+        ],
+        "steps": [
+          "icpx --version",
+          "mkdir build",
+          "cd build",
+          "cmake ..",
+          "make fpga_emu",
+          "./usm_board_test.fpga_emu"
+        ]
+      },
+      {
+        "id": "report",
+        "steps": [
+          "icpx --version",
+          "mkdir build",
+          "cd build",
+          "cmake ..",
+          "make report"
+        ]
+      }
+    ],
+    "windows": [
+      {
+        "id": "fpga_emu",
+        "env": [
+          "set CL_CONFIG_CPU_FORCE_PRIVATE_MEM_SIZE=32MB"
+        ],
+        "steps": [
+          "icpx --version",
+          "cd ../..",
+          "mkdir build",
+          "cd build",
+          "cmake -G \"NMake Makefiles\" ../ReferenceDesigns/usm_board_test",
+          "nmake fpga_emu",
+          "usm_board_test.fpga_emu.exe"
+        ]
+      },
+      {
+        "id": "report",
+        "steps": [
+          "icpx --version",
+          "cd ../..",
+          "mkdir build",
+          "cd build",
+          "cmake -G \"NMake Makefiles\" ../ReferenceDesigns/usm_board_test",
+          "nmake report"
+        ]
+      }
+    ]
+  },
+  "expertise": "Reference Designs and End to End"
+}
