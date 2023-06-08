@@ -24,66 +24,68 @@ static const int TYPE_WRITE = 2;
 
 // ulong8 was picked because it is 64 bytes in size and that is the width of
 // the interconnect to global memory
-using TYPE = sycl::ulong8;
+// using TYPE = sycl::ulong8;
 
 class MemCopy;
 class MemRead;
 class MemWrite;
 
-template <typename T>
-void memcopy_kernel(sycl::queue &q, T *in, T *out,
-                    const sycl::range<1> numItems) {
-  auto queue_event = q.submit([&](sycl::handler &cgh) {
-    cgh.single_task<class MemCopy>([=]() [[intel::kernel_args_restrict]] {
-      auto in_h = sycl::host_ptr<T>(in);
-      auto out_h = sycl::host_ptr<T>(out);
-      for (size_t i = 0; i < numItems.get(0); i++) {
-        out_h[i] = in_h[i];
-      }
-    });
+void memcopy_kernel(sycl::queue &q,
+                    sycl::vec<long, 8> *in,
+                    sycl::vec<long, 8> *out,
+                    const sycl::range<1> numItems
+) {
+  q.single_task<class MemCopy>([=]() [[intel::kernel_args_restrict]] {
+    sycl::host_ptr<sycl::vec<long, 8>> in_h(in);
+    sycl::host_ptr<sycl::vec<long, 8>> out_h(out);
+    for (size_t i = 0; i < numItems.get(0); i++) {
+      out_h[i] = in_h[i];
+    }
   });
 }
 
-template <typename T>
-void read_kernel(sycl::queue &q, T *in, T *out, const sycl::range<1> numItems) {
-  auto queue_event = q.submit([&](sycl::handler &cgh) {
-    cgh.single_task<class MemRead>([=]() {
-      T sum{0};
-      auto in_h = sycl::host_ptr<T>(in);
-      auto out_h = sycl::host_ptr<T>(out);
-      for (size_t i = 0; i < numItems.get(0); i++) {
-        sum += in_h[i];
-      }
-      // This prevents the reads from being optimized away
-      out_h[0] = sum;
-    });
+void read_kernel(sycl::queue &q,
+                 sycl::vec<long, 8> *in,
+                 sycl::vec<long, 8> *out,
+                 const sycl::range<1> numItems
+) {
+  q.single_task<class MemRead>([=]() {
+    sycl::vec<long, 8> sum{0};
+    sycl::host_ptr<sycl::vec<long, 8>> in_h(in);
+    sycl::host_ptr<sycl::vec<long, 8>> out_h(out);
+    for (size_t i = 0; i < numItems.get(0); i++) {
+      sum += in_h[i];
+    }
+    // This prevents the reads from being optimized away
+    out_h[0] = sum;
   });
 }
 
-template <typename T>
-void write_kernel(sycl::queue &q, T *in, T *out,
-                  const sycl::range<1> numItems) {
-  auto queue_event = q.submit([&](sycl::handler &cgh) {
-    cgh.single_task<class MemWrite>([=]() {
-      T anws{5};
-      auto out_h = sycl::host_ptr<T>(out);
-      for (size_t i = 0; i < numItems.get(0); i++) {
-        out_h[i] = anws;
-      }
-    });
+void write_kernel(sycl::queue &q,
+                  sycl::vec<long, 8> *in,
+                  sycl::vec<long, 8> *out,
+                  const sycl::range<1> numItems
+) {
+  q.single_task<class MemWrite>([=]() {
+    sycl::vec<long, 8> anws{5};
+    sycl::host_ptr<sycl::vec<long, 8>> out_h(out);
+    for (size_t i = 0; i < numItems.get(0); i++) {
+      out_h[i] = anws;
+    }
   });
 }
 
-template <typename T>
-bool verify_memcopy_kernel(T *in, T *out, const sycl::range<1> numItems) {
-  // FIXME: this assumes the data type is sycl::vec
+bool verify_memcopy_kernel(sycl::vec<long, 8> *in,
+                           sycl::vec<long, 8> *out,
+                           const sycl::range<1> numItems
+) {
   for (auto i = 0; i < numItems.get(0); i++) {
-    auto compare = in[i] == out[i];
+    sycl::vec<long, 8> compare = in[i] == out[i];
     for (auto j = 0; j < compare.size(); j++) {
       if (!compare[j]) {
-        std::cerr << "ERROR: Values do not match, in[" << i << "][" << j
-                  << "]:" << in[i][j] << " != out[" << i << "][" << j
-                  << "]:" << out[i][j] << std::endl;
+        std::cerr << "ERROR: Values do not match, in[" << i << "][" << j << "]:"
+                  << in[i][j] << " != out[" << i << "][" << j << "]:"
+                  << out[i][j] << std::endl;
         return false;
       }
     }
@@ -91,15 +93,16 @@ bool verify_memcopy_kernel(T *in, T *out, const sycl::range<1> numItems) {
   return true;
 }
 
-template <typename T>
-bool verify_read_kernel(T *in, T *out, const sycl::range<1> numItems) {
-  T anwser{0};
+bool verify_read_kernel(sycl::vec<long, 8> *in,
+                        sycl::vec<long, 8> *out,
+                        const sycl::range<1> numItems
+) {
+  sycl::vec<long, 8> anwser{0};
   for (auto i = 0; i < numItems.get(0); i++) {
     anwser += in[i];
   }
-  // FIXME: this assumes the data type is sycl::vec
   for (auto i = 0; i < numItems.get(0); i++) {
-    T compare{0};
+    sycl::vec<long, 8> compare{0};
     if (i == 0) {
       compare = anwser == out[i];
     } else {
@@ -108,11 +111,11 @@ bool verify_read_kernel(T *in, T *out, const sycl::range<1> numItems) {
     for (auto j = 0; j < compare.size(); j++) {
       if (!compare[j]) {
         if (i == 0) {
-          std::cerr << "ERROR: Values do not match, anwser[" << j
-                    << "]:" << anwser[j];
+          std::cerr << "ERROR: Values do not match, anwser[" << j << "]:" 
+                    << anwser[j];
         } else {
-          std::cerr << "ERROR: Values do not match, anwser[" << j
-                    << "]:" << compare[j];
+          std::cerr << "ERROR: Values do not match, anwser[" << j << "]:"
+                    << compare[j];
         }
         std::cerr << " != out[" << i << "][" << j << "]:" << out[i][j]
                   << std::endl;
@@ -123,17 +126,18 @@ bool verify_read_kernel(T *in, T *out, const sycl::range<1> numItems) {
   return true;
 }
 
-template <typename T>
-bool verify_write_kernel(T *in, T *out, const sycl::range<1> numItems) {
-  T anwser{5};
-  // FIXME: this assumes the data type is sycl::vec
+bool verify_write_kernel(sycl::vec<long, 8> *in,
+                         sycl::vec<long, 8> *out,
+                         const sycl::range<1> numItems
+) {
+  sycl::vec<long, 8> anwser{5};
   for (auto i = 0; i < numItems.get(0); i++) {
-    auto compare = anwser == out[i];
+    sycl::vec<long, 8> compare = anwser == out[i];
     for (auto j = 0; j < compare.size(); j++) {
       if (!compare[j]) {
-        std::cerr << "ERROR: Values do not match, anwser[" << j
-                  << "]:" << anwser[j] << " != out[" << i << "][" << j
-                  << "]:" << out[i][j] << std::endl;
+        std::cerr << "ERROR: Values do not match, anwser[" << j << "]:"
+                  << anwser[j] << " != out[" << i << "][" << j << "]:"
+                  << out[i][j] << std::endl;
         return false;
       }
     }
@@ -141,16 +145,18 @@ bool verify_write_kernel(T *in, T *out, const sycl::range<1> numItems) {
   return true;
 }
 
-template <typename T>
 void run_test(
-    sycl::queue &q, const size_t numBytes, int itterations,
-    std::function<void(sycl::queue &, T *, T *, const sycl::range<1>)> kernel,
-    std::function<bool(T *, T *, const sycl::range<1>)> verify,
-    std::chrono::microseconds &time) {
+    sycl::queue &q,
+    const size_t numBytes,
+    int itterations,
+    std::function<void(sycl::queue &, sycl::vec<long, 8> *, sycl::vec<long, 8> *, const sycl::range<1>)> kernel,
+    std::function<bool(sycl::vec<long, 8> *, sycl::vec<long, 8> *, const sycl::range<1>)> verify,
+    std::chrono::microseconds &time
+) {
 
-  const sycl::range<1> numItems{numBytes / sizeof(T)};
-  T *in = sycl::malloc_host<T>(numItems.get(0), q.get_context());
-  T *out = sycl::malloc_host<T>(numItems.get(0), q.get_context());
+  const sycl::range<1> numItems{numBytes / sizeof(sycl::vec<long, 8>)};
+  sycl::vec<long, 8> *in = sycl::malloc_host<sycl::vec<long, 8>>(numItems.get(0), q.get_context());
+  sycl::vec<long, 8> *out = sycl::malloc_host<sycl::vec<long, 8>>(numItems.get(0), q.get_context());
 
   if (in == nullptr || out == nullptr) {
     std::cerr << "Error: Out of memory, can't allocate " << numBytes << " bytes"
@@ -159,10 +165,9 @@ void run_test(
   }
 
   // initialize the input
-  std::random_device
-      rd; // Will be used to obtain a seed for the random number engine
+  std::random_device rd; // Will be used to obtain a seed for the random number engine
   std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
-  std::uniform_int_distribution<unsigned long> distrib(0, 1024);
+  std::uniform_int_distribution<long> distrib(0, 1024);
   for (auto i = 0; i < numItems.get(0); i++) {
     in[i] = {distrib(gen)};
     out[i] = {0};
@@ -220,7 +225,7 @@ int main(int argc, char *argv[]) {
   size_t data_size = 1024 * 1024 * 1024;
   std::cout << "Iterations: " << itterations << std::endl;
   std::cout << "Data size: " << data_size / MB << " MB" << std::endl;
-  std::cout << "Data type size: " << sizeof(TYPE) << " bytes" << std::endl;
+  std::cout << "Data type size: " << sizeof(sycl::vec<long, 8>) << " bytes" << std::endl;
 
   std::cout << "-- Results Full Duplex -- " << std::endl;
   for (int i = 0; i < 3; i++) {
@@ -228,27 +233,21 @@ int main(int argc, char *argv[]) {
     switch (i) {
     case TYPE_MEMCOPY: {
       std::cout << std::endl << "Case: Full Duplex" << std::endl;
-      std::function<void(sycl::queue &, TYPE *, TYPE *, const sycl::range<1>)>
-          memcopy_k = memcopy_kernel<TYPE>;
-      std::function<bool(TYPE *, TYPE *, const sycl::range<1>)> verify =
-          verify_memcopy_kernel<TYPE>;
-      run_test<TYPE>(q, data_size, itterations, memcopy_k, verify, time);
+      std::function<void(sycl::queue &, sycl::vec<long, 8> *, sycl::vec<long, 8> *, const sycl::range<1>)> memcopy_k = memcopy_kernel;
+      std::function<bool(sycl::vec<long, 8> *, sycl::vec<long, 8> *, const sycl::range<1>)> verify = verify_memcopy_kernel;
+      run_test(q, data_size, itterations, memcopy_k, verify, time);
     } break;
     case TYPE_READ: {
       std::cout << std::endl << "Case: From Host to Device" << std::endl;
-      std::function<void(sycl::queue &, TYPE *, TYPE *, const sycl::range<1>)>
-          read_k = read_kernel<TYPE>;
-      std::function<bool(TYPE *, TYPE *, const sycl::range<1>)> verify =
-          verify_read_kernel<TYPE>;
-      run_test<TYPE>(q, data_size, itterations, read_k, verify, time);
+      std::function<void(sycl::queue &, sycl::vec<long, 8> *, sycl::vec<long, 8> *, const sycl::range<1>)> read_k = read_kernel;
+      std::function<bool(sycl::vec<long, 8> *, sycl::vec<long, 8> *, const sycl::range<1>)> verify = verify_read_kernel;
+      run_test(q, data_size, itterations, read_k, verify, time);
     } break;
     case TYPE_WRITE: {
       std::cout << std::endl << "Case: From Device to Host" << std::endl;
-      std::function<void(sycl::queue &, TYPE *, TYPE *, const sycl::range<1>)>
-          write_k = write_kernel<TYPE>;
-      std::function<bool(TYPE *, TYPE *, const sycl::range<1>)> verify =
-          verify_write_kernel<TYPE>;
-      run_test<TYPE>(q, data_size, itterations, write_k, verify, time);
+      std::function<void(sycl::queue &, sycl::vec<long, 8> *, sycl::vec<long, 8> *, const sycl::range<1>)> write_k = write_kernel;
+      std::function<bool(sycl::vec<long, 8> *, sycl::vec<long, 8> *, const sycl::range<1>)> verify = verify_write_kernel;
+      run_test(q, data_size, itterations, write_k, verify, time);
     } break;
     default:
       std::cout << "Error: Don't know how to launch test " << i << std::endl;
