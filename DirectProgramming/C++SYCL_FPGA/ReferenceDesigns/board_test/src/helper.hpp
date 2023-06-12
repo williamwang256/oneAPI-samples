@@ -45,6 +45,7 @@ void PrintHelp(int details) {
               << "  4. Kernel Latency Measurement\n"
               << "  5. Kernel-to-Memory Read Write Test\n"
               << "  6. Kernel-to-Memory Bandwidth Test\n"
+              << "  7. USM Bandwidth Test\n"
               << "Note: Kernel Clock Frequency is run along with all tests "
               << "except 1 (Host Speed and Host Read Write test)\n\n";
   } else {
@@ -81,6 +82,10 @@ void PrintHelp(int details) {
         << "    The host reads the modified data back and verifies the read "
         << "back values match expected value\n"
         << "  * 6. Kernel-to-Memory Bandwidth Test *\n"
+        << "    Kernel-to-Memory Bandwidth test measures the kernel to device "
+        << "global memory bandwidth and compares this with the theoretical "
+        << "bandwidth defined in board_spec.xml file in the oneAPI shim/BSP.\n"
+        << "  * 7. USM Bandwidth Test *\n"
         << "    Kernel-to-Memory Bandwidth test measures the kernel to device "
         << "global memory bandwidth and compares this with the theoretical "
         << "bandwidth defined in board_spec.xml file in the oneAPI shim/BSP.\n\n"

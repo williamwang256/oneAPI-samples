@@ -6,6 +6,7 @@
 
 // Test related header files
 #include "board_test.hpp"
+#include "usm.hpp"
 
 int main(int argc, char* argv[]) {
   // Always print small help at the beginning of board test
@@ -202,6 +203,18 @@ int main(int argc, char* argv[]) {
                 << "*****************************************************************\n\n";
 
       ret |= hldshim.KernelMemBW(q);
+    }
+
+    // Test 7 - USM
+    if (test_to_run == 0 || test_to_run == 7) {
+      if (!device.has(sycl::aspect::usm_host_allocations)) {
+        std::cout << "Board does not support BSM, skipping this test \n";
+      } else {
+        std::cout << "\n*****************************************************************\n"
+                  << "***********************  USM Bandwidth  ************************\n"
+                  << "*****************************************************************\n\n";
+        ret |= usm_test(q);
+      }
     }
   }  // End of try block
 
