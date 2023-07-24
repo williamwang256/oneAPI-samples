@@ -5,6 +5,7 @@ The `Board Test` sample is a reference design contains tests to check FPGA board
 - Kernel clock frequency
 - Kernel launch latency
 - Kernel to device global memory bandwidth
+- Unified Shared Memory bandwidth
 
 | Area                    | Description
 |:---                     |:---
@@ -89,6 +90,7 @@ The following block diagram shows an overview of a typical oneAPI FPGA BSP hardw
 | `board_test.hpp`   | Contains the definitions for all the individual tests in the sample.
 | `host_speed.hpp`   | Header for host speed test. Contains definition of functions used in host speed test.
 | `helper.hpp`       | Contains constants (for example, binary name) used throughout the code as well as definition of functions that print help and measure execution time.
+| `usm_speed.hpp`    | Header for the USM bandwidth test. Contains definitions of functions used in the USM bandwidth test.
 
 ### Compiler Flags Used
 
@@ -207,9 +209,9 @@ The `Board Test` program checks following interfaces in a platform:
 
 - **Kernel-to-device global memory interface:** This interface is checked by performing kernel to memory data transfers using simple read and write kernels. Kernel to memory bandwidth is measured and reported.
 
-  > **Note**: This test currently does not support SYCL Unified Shared Memory (USM). For testing the USM interface, use the [Simple host streaming sample](/DirectProgramming/C++SYCL_FPGA/Tutorials/DesignPatterns/simple_host_streaming) code sample in the oneAPI-sample GitHub repository.
-
 - **Host-to-kernel interface:** The test ensures that the host to kernel communication is correct and that the host can launch a kernel successfully. It also measures the roundtrip kernel launch latency and throughput (number of kernels/ms) of single task no-operation kernels.
+
+- **Unified shared memory (USM) interface:** This interface is checked by copying data between, reading data from, and writing data to host USM. The bandwidth is measured and reported for each case. Applies only to board variants with USM support.
 
 - **Kernel clock frequency:** The test measures the frequency the programmed kernel is running at on the FPGA device and reports it. By default, this test fails if the measured frequency is not within 2% of the compiled frequency.
 
@@ -228,6 +230,7 @@ The complete board test is divided into six subtests. By default, all tests run.
 | 4            | Kernel Latency Measurement
 | 5            | Kernel-to-Memory Read Write Test
 | 6            | Kernel-to-Memory Bandwidth Test
+| 7            | Unified Shared Memory (USM) Bandwidth Test
 
 >**Note:** You should run all tests at least once to ensure that the platform interfaces are fully functional.
 
@@ -423,6 +426,32 @@ Summarizing bandwidth in MB/s/bank for banks 1 to 8
  16050.6  16049.9  16049.5  16049.5  16049.3  16049.7  16049.8  16049.5  MemReadWriteStream
 
 KERNEL-TO-MEMORY BANDWIDTH = 16509.6 MB/s/bank
+
+*****************************************************************
+***********************  USM Bandwidth  *************************
+*****************************************************************
+
+Case: Full Duplex
+Iterations: 1
+Data size: 1024 MB
+Data type size: 64 bytes
+Average Time: 99122.8 ns	
+Average Throughput: 20.177 GB/s	
+
+Case: From Host to Device
+Iterations: 1
+Data size: 1024 MB
+Data type size: 64 bytes
+Average Time: 86711.5 ns	
+Average Throughput: 11.5325 GB/s	
+
+Case: From Device to Host
+Iterations: 1
+Data size: 1024 MB
+Data type size: 64 bytes
+Average Time: 84240.3 ns	
+Average Throughput: 11.8708 GB/s	
+
 
 BOARD TEST PASSED
 

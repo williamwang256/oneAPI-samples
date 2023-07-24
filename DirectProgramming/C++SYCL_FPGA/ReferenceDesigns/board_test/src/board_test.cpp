@@ -203,6 +203,18 @@ int main(int argc, char* argv[]) {
 
       ret |= hldshim.KernelMemBW(q);
     }
+
+    // Test 7 - USM
+    if (test_to_run == 0 || test_to_run == 7) {
+      std::cout << "\n*****************************************************************\n"
+                << "***********************  USM Bandwidth  *************************\n"
+                << "*****************************************************************\n\n";
+#if defined(SUPPORTS_USM)
+      ret |= hldshim.USMBWTest(q);
+#else
+      std::cout << "Board does not support USM, skipping this test \n";
+#endif
+    }
   }  // End of try block
 
   catch (sycl::exception const& e) {
