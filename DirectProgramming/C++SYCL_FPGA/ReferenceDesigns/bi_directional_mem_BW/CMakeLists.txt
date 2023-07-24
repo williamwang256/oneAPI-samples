@@ -10,7 +10,7 @@ endif()
 
 cmake_minimum_required (VERSION 3.7.2)
 
-project(main CXX)
+project(bi_directional_mem_BW CXX)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -19,8 +19,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 ###############################################################################
 ### Customize these build variables
 ###############################################################################
-set(SOURCE_FILES src/main.cpp)
-set(TARGET_NAME main)
+set(SOURCE_FILES src/bi_directional_mem_BW.cpp)
+set(TARGET_NAME bi_directional_mem_BW)
 
 # FPGA board selection
 if(NOT DEFINED FPGA_DEVICE)

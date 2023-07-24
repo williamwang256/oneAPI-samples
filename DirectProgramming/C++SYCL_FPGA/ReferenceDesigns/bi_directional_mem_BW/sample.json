@@ -1,0 +1,71 @@
+{
+  "guid": "7cd29f44-44bf-4a45-907c-0322d731eef2",
+  "name": "bi_directional_mem_BW",
+  "categories": ["Toolkit/oneAPI Direct Programming/C++SYCL FPGA/Reference Designs"],
+  "description": "",
+  "toolchain": ["icpx"],
+  "os": ["linux", "windows"],
+  "builder": ["ide", "cmake"],
+  "targetDevice": ["FPGA"],
+  "languages": [{"cpp":{}}],
+  "commonFolder": {
+    "base": "../..",
+    "include": [
+      "README.md",
+      "ReferenceDesigns/bi_directional_mem_BW",
+      "include"
+    ],
+    "exclude": []
+  },
+  "ciTests": {
+    "linux": [
+      {
+        "id": "fpga_emu",
+        "steps": [
+          "icpx --version",
+          "mkdir build",
+          "cd build",
+          "cmake ..",
+          "make fpga_emu",
+          "./bi_directional_mem_BW.fpga_emu"
+        ]
+      },
+      {
+        "id": "report",
+        "steps": [
+          "icpx --version",
+          "mkdir build",
+          "cd build",
+          "cmake ..",
+          "make report"
+        ]
+      }
+    ],
+    "windows": [
+      {
+        "id": "fpga_emu",
+        "steps": [
+          "icpx --version",
+          "cd ../..",
+          "mkdir build",
+          "cd build",
+          "cmake -G \"NMake Makefiles\" ../ReferenceDesigns/bi_directional_mem_BW",
+          "nmake fpga_emu",
+          "bi_directional_mem_BW.fpga_emu.exe"
+        ]
+      },
+      {
+        "id": "report",
+        "steps": [
+          "icpx --version",
+          "cd ../..",
+          "mkdir build",
+          "cd build",
+          "cmake -G \"NMake Makefiles\" ../ReferenceDesigns/bi_directional_mem_BW",
+          "nmake report"
+        ]
+      }
+    ]
+  },
+  "expertise": "Reference Designs and End to End"
+}
