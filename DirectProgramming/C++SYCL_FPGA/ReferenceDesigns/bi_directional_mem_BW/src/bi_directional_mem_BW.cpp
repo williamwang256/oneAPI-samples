@@ -5,6 +5,11 @@
 
 #include "exception_handler.hpp"
 
+struct MyKernel {
+  void operator()() const {
+  }
+};
+
 int bi_directional_speed_test(sycl::queue &q) {
 
   constexpr size_t kNumItems = 1024;
@@ -61,6 +66,8 @@ int main() {
 #endif
   sycl::property_list q_prop_list{sycl::property::queue::enable_profiling()};
   sycl::queue q(selector, fpga_tools::exception_handler, q_prop_list);
+
+  q.single_task<class MYKERNEL>(MyKernel{});
 
   bool passed = bi_directional_speed_test(q);
   std::cout << (passed ? "PASSED" : "FAILED") << std::endl;
