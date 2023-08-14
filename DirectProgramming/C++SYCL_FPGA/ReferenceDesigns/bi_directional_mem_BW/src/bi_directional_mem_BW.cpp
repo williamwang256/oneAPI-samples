@@ -5,54 +5,85 @@
 
 #include "exception_handler.hpp"
 
+constexpr size_t kKB = 1024;
+constexpr size_t kMB = 1024 * 1024;
+constexpr size_t kGB = 1024 * 1024 * 1024;
+constexpr size_t kRandomSeed = 1009;
 struct MyKernel {
   void operator()() const {
   }
 };
 
-int bi_directional_speed_test(sycl::queue &q) {
-
-  constexpr size_t kNumItems = 1024;
-  constexpr size_t kTransferSize = 8;
-  constexpr size_t kNumTransfers = kNumItems / kTransferSize;
-
-  int kIterations = 8;
-
-  sycl::buffer<int, 1> devicebuffer1{sycl::range<1>{kNumItems}, {sycl::property::buffer::mem_channel{1}}};
-  sycl::buffer<int, 1> devicebuffer2{sycl::range<1>{kNumItems}, {sycl::property::buffer::mem_channel{2}}};
-
-  int *hostbuffer1 = new int[kNumItems];
-  int *hostbuffer2 = new int[kNumItems];
-
-  for (int i = 0; i < kNumItems; i++) {
-    hostbuffer1[i] = rand();
-  }
+int ReadWriteSpeed(sycl::queue &q,
+                   sycl::buffer<char, 1> &device_buffer1,
+                   sycl::buffer<char, 1> &device_buffer2,
+                   char *host_buffer1,
+                   char *host_buffer2,
+                   size_t block_bytes,
+                   size_t total_bytes
+) {
+  size_t num_transfers = total_bytes / block_bytes;
+  assert(num_transfers > 0);
 
   auto start = std::chrono::steady_clock::now();
 
-  for (int i = 0; i < kIterations; i++) {
-    for (int j = 0; j < kNumTransfers; j++) {
-      q.submit([&](sycl::handler &h) {
-        sycl::accessor<int, 1, sycl::access::mode::write> mem(devicebuffer1, h, kNumItems, 0);
-        h.copy(hostbuffer1, mem);
-      });
-      q.submit([&](sycl::handler &h) {
-        sycl::accessor<int, 1, sycl::access::mode::read> mem(devicebuffer1, h, kNumItems, 0);
-        h.copy(mem, hostbuffer2);
-      });
-    }
-    q.wait();
-  
+  for (size_t i = 0; i < num_transfers; i++) {
+
+    q.submit([&](sycl::handler &h) {
+      auto buf_range = block_bytes / sizeof(char);
+      auto buf_offset = (i * block_bytes) / sizeof(char);
+      sycl::accessor<char, 1, sycl::access::mode::write> mem1(device_buffer1, h, buf_range, buf_offset);
+      h.copy(&host_buffer1[buf_offset], mem1);
+    });
+
+    q.submit([&](sycl::handler &h) {
+      auto buf_range = block_bytes / sizeof(char);
+      auto buf_offset = (i * block_bytes) / sizeof(char);
+      sycl::accessor<char, 1, sycl::access::mode::read> mem2(device_buffer2, h, buf_range, buf_offset);
+      h.copy(mem2, &host_buffer2[buf_offset]);
+    });
+
   }
+  q.wait();
 
   auto end = std::chrono::steady_clock::now();
   double time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count();
 
-  std::cout << (unsigned)(time_span * 1000) << " ms" << std::endl;
+  float throughput = ((float)total_bytes / kMB) / (float)time_span;
+
+  std::cout << throughput << " MB/s" << std::endl;
+
+}
+
+int bi_directional_speed_test(sycl::queue &q) {
+
+  // Total bytes to transfer
+  constexpr size_t kMaxBytes = 8 * kMB;  // 8 MB;
+  constexpr size_t kMaxChars = kMaxBytes / sizeof(char);
+
+  // Block size of each transfer in bytes
+  constexpr size_t kMinBytes = 32 * kKB;  // 32 KB
+  size_t block_bytes = kMinBytes;
+
+
+  // int kIterations = 8;
+
+  sycl::buffer<char, 1> device_buffer1{sycl::range<1>{kMaxChars}, {sycl::property::buffer::mem_channel{1}}};
+  sycl::buffer<char, 1> device_buffer2{sycl::range<1>{kMaxChars}, {sycl::property::buffer::mem_channel{2}}};
+
+  char *host_buffer1 = new char[kMaxBytes];
+  char *host_buffer2 = new char[kMaxBytes];
+
+  for (int i = 0; i < kMaxChars; i++) {
+    host_buffer1[i] = rand();
+  }
+
+
+  ReadWriteSpeed(q, device_buffer1, device_buffer2, host_buffer1, host_buffer2, 8388608, 8388608);
 
   bool passed = true;
-  for (int i = 0; i < kNumItems; i++) {
-    passed &= hostbuffer1[i] == hostbuffer2[i];
+  for (int i = 0; i < kMaxChars; i++) {
+    passed &= host_buffer1[i] == host_buffer2[i];
   }
   return passed;
   
@@ -67,7 +98,7 @@ int main() {
   sycl::property_list q_prop_list{sycl::property::queue::enable_profiling()};
   sycl::queue q(selector, fpga_tools::exception_handler, q_prop_list);
 
-  q.single_task<class MYKERNEL>(MyKernel{});
+  q.single_task<class MY_KERNEL>(MyKernel{});
 
   bool passed = bi_directional_speed_test(q);
   std::cout << (passed ? "PASSED" : "FAILED") << std::endl;
