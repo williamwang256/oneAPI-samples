@@ -73,9 +73,10 @@ The BSP consists of components operating at different clock domains. PCIe and ex
 
 The following block diagram shows an overview of a typical oneAPI FPGA BSP hardware design and the numbered arrows depict the following:
 
-- Path 1 represents the host-to-device global memory interface.
-- Path 2 represents the host to kernel interface.
+- Path 1 represents the host to kernel interface.
+- Path 2 represents the host-to-device global memory interface.
 - Path 3 represents the kernel-to-device global memory interface.
+- Path 4 represents the kernel-to-shared host memory interface
 
 
 ![BSP hardware design](assets/oneapi_fpga_platform.png)
@@ -89,8 +90,8 @@ The following block diagram shows an overview of a typical oneAPI FPGA BSP hardw
 | `board_test.cpp`   | Contains the `main()` function and the test selection logic as well as calls to each test.
 | `board_test.hpp`   | Contains the definitions for all the individual tests in the sample.
 | `host_speed.hpp`   | Header for host speed test. Contains definition of functions used in host speed test.
-| `helper.hpp`       | Contains constants (for example, binary name) used throughout the code as well as definition of functions that print help and measure execution time.
 | `usm_speed.hpp`    | Header for the USM bandwidth test. Contains definitions of functions used in the USM bandwidth test.
+| `helper.hpp`       | Contains constants (for example, binary name) used throughout the code as well as definition of functions that print help and measure execution time.
 
 ### Compiler Flags Used
 
@@ -211,7 +212,7 @@ The `Board Test` program checks following interfaces in a platform:
 
 - **Host-to-kernel interface:** The test ensures that the host to kernel communication is correct and that the host can launch a kernel successfully. It also measures the roundtrip kernel launch latency and throughput (number of kernels/ms) of single task no-operation kernels.
 
-- **Unified shared memory (USM) interface:** This interface is checked by copying data between, reading data from, and writing data to host USM. The bandwidth is measured and reported for each case. Applies only to board variants with USM support.
+- **Unified shared memory (USM) interface:** This interface is checked by copying data between, reading data from, and writing data to host USM. The bandwidth is measured and reported for each case. Applies only to board variants with USM support; to run this test you must specify the `SUPPORTS_USM` macro at compile-time; e.g., `cmake .. -DSUPPORTS_USM=1`.
 
 - **Kernel clock frequency:** The test measures the frequency the programmed kernel is running at on the FPGA device and reports it. By default, this test fails if the measured frequency is not within 2% of the compiled frequency.
 
@@ -286,6 +287,7 @@ The tests are:
   4. Kernel Latency Measurement
   5. Kernel-to-Memory Read Write Test
   6. Kernel-to-Memory Bandwidth Test
+  7. Unified Shared Memory Bandwidth Test
 Note: Kernel Clock Frequency is run along with all tests except 1 (Host Speed and Host Read Write test)
 
 Running all tests
