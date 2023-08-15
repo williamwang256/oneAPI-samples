@@ -361,8 +361,8 @@ size_t ShimMetrics::TestGlobalMem(sycl::queue &q) {
 // *hostbuf_wr, size_t block_bytes, size_t total_bytes)
 // 3. struct Speed ReadSpeed(queue &q, buffer<char,1> &device_buffer, char
 // *hostbuf_rd, size_t block_bytes, size_t total_bytes)
-// 4. struct Speed ReadWriteSpeed(queue &q, buffer<char, 1> &device_buffer1, 
-// buffer<char, 1> &device_buffer2, char *hostbuf_1, char *hostbuf_2, 
+// 4. struct Speed ReadWriteSpeed(queue &q, buffer<char, 1> &device_buffer1,
+// buffer<char, 1> &device_buffer2, char *hostbuf_1, char *hostbuf_2,
 // size_t block_bytes, size_t total_bytes)
 // 5. bool CheckResults
 // 6. unsigned long SyclGetQStExecTimeNs(event e)
@@ -390,10 +390,10 @@ int ShimMetrics::HostSpeed(sycl::queue &q) {
   // Buffer that WriteSpeed and ReadSpeed functions write to & read from
   sycl::buffer<char, 1> device_buffer{sycl::range<1>{kMaxChars}};
   // Two buffers used by the ReadWriteSpeed function
-  sycl::buffer<char, 1> device_buffer_rw1{sycl::range<1>{kMaxChars},
-      {sycl::property::buffer::mem_channel{1}}};
-  sycl::buffer<char, 1> device_buffer_rw2{sycl::range<1>{kMaxChars},
-      {sycl::property::buffer::mem_channel{2}}};
+  sycl::buffer<char, 1> device_buffer_rw1{
+      sycl::range<1>{kMaxChars}, {sycl::property::buffer::mem_channel{1}}};
+  sycl::buffer<char, 1> device_buffer_rw2{
+      sycl::range<1>{kMaxChars}, {sycl::property::buffer::mem_channel{2}}};
 
   // **** Host memory allocation and initialization **** //
 
@@ -486,7 +486,7 @@ int ShimMetrics::HostSpeed(sycl::queue &q) {
 
   // Fastest transfer value used in read-write bandwidth calculation
   float write_topspeed = 0;
- 
+
   std::cout << "\nWriting " << (kMaxBytes / kKB)
             << " KBs with block size (in bytes) below:\n\n";
   std::cout << std::setw(10) << std::right << "Block Size "
@@ -548,7 +548,7 @@ int ShimMetrics::HostSpeed(sycl::queue &q) {
 
   // Fastest transfer value used in read-write bandwidth calculation
   float readwrite_topspeed = 0;
- 
+
   std::cout << "\nReading-writing " << (kMaxBytes / kKB)
             << " KBs with block size (in bytes) below:\n\n";
   std::cout << std::setw(10) << std::right << "Block Size "

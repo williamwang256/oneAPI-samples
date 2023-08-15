@@ -196,7 +196,7 @@ struct Speed ReadSpeed(sycl::queue &q, sycl::buffer<char, 1> &device_buffer,
 // 2. Calculate bandwidth based on measured time for each transfer
 
 struct Speed ReadWriteSpeed(sycl::queue &q,
-                            sycl::buffer<char, 1> &device_buffer1, 
+                            sycl::buffer<char, 1> &device_buffer1,
                             sycl::buffer<char, 1> &device_buffer2,
                             char *hostbuf_1, char *hostbuf_2,
                             size_t block_bytes, size_t total_bytes) {
@@ -238,7 +238,6 @@ struct Speed ReadWriteSpeed(sycl::queue &q,
           device_buffer2, h, buf_range, buf_offset);
       h.copy(mem, &hostbuf_2[buf_offset]);
     });
-
   }
   // Wait for copy to complete
   q.wait();
@@ -246,7 +245,9 @@ struct Speed ReadWriteSpeed(sycl::queue &q,
   // **** Get the time for each transfer from Sycl event array **** //
 
   auto end = std::chrono::steady_clock::now();
-  double time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count();
+  float time_span =
+      std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
+          .count();
 
   struct Speed speed_wr;
   speed_wr.average = 0.0f;
@@ -254,8 +255,10 @@ struct Speed ReadWriteSpeed(sycl::queue &q,
   speed_wr.slowest = 1.0e7f;
 
   // for (size_t i = 0; i < num_xfers; i++) {
-  //   float time_s = std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count();
-  //   float speed_MBps = ((float)block_bytes / kMB) / ((float)time_ns * 1e-9);
+  //   float time_s =
+  //   std::chrono::duration_cast<std::chrono::duration<double>>(end -
+  //   start).count(); float speed_MBps = ((float)block_bytes / kMB) /
+  //   ((float)time_ns * 1e-9);
 
   //   if (speed_MBps > speed_wr.fastest) speed_wr.fastest = speed_MBps;
   //   if (speed_MBps < speed_wr.slowest) speed_wr.slowest = speed_MBps;
@@ -266,11 +269,11 @@ struct Speed ReadWriteSpeed(sycl::queue &q,
   // Average write bandwidth
   // speed_wr.average =
   //     ((float)total_bytes / kMB) / ((float)speed_wr.average * 1e-9);
-  speed_wr.total = ((float)total_bytes / kMB) / ((float)time_span);
+  speed_wr.total = ((float)total_bytes / kMB) / time_span;
 
   return speed_wr;
 
-}  // End of ReadWriteSpeed
+} // End of ReadWriteSpeed
 
 
 /////////////////////////////////////
