@@ -1,0 +1,18 @@
+0000000000000000000000000000000000000000 4ccdff45b65684ae528d2c3af420c12e3f16567a William Wang <william1.wang@intel.com> 1684436233 -0700	clone: from https://github.com/intel-sandbox/wangwil3.qrcode.git
+4ccdff45b65684ae528d2c3af420c12e3f16567a e7cf19ad4f1f94379231e4edae1a0d29f9c0dacb William Wang <william1.wang@intel.com> 1684437462 -0700	commit: update to C++
+e7cf19ad4f1f94379231e4edae1a0d29f9c0dacb e65ba03ba73b8bb026ca18eecf9885f5ff21788b William Wang <william1.wang@intel.com> 1684439105 -0700	commit: update to use oneAPI compiler
+e65ba03ba73b8bb026ca18eecf9885f5ff21788b 12e44dcc0c8bc28aa05224ae6a77f19b2bda418c William Wang <william1.wang@intel.com> 1684443772 -0700	commit: clean and formatting
+12e44dcc0c8bc28aa05224ae6a77f19b2bda418c 582de622c81af304cedfe52f11ba7a45d3fb1cb1 William Wang <william1.wang@intel.com> 1684503728 -0700	commit: Updates
+582de622c81af304cedfe52f11ba7a45d3fb1cb1 582de622c81af304cedfe52f11ba7a45d3fb1cb1 William Wang <william1.wang@intel.com> 1684869939 -0700	checkout: moving from main to move-to-device-code-work
+582de622c81af304cedfe52f11ba7a45d3fb1cb1 7422220824813616f13035c815ff8fce9f1b86f4 William Wang <william1.wang@intel.com> 1684869954 -0700	commit: first
+7422220824813616f13035c815ff8fce9f1b86f4 a93ba996ab6934c67696b0230d5a01322ccec2bb William Wang <william1.wang@intel.com> 1684872001 -0700	commit: work
+a93ba996ab6934c67696b0230d5a01322ccec2bb 6eae2fc3bcea29fc4a4869c65e1534c351afef39 William Wang <william1.wang@intel.com> 1685652130 -0700	commit: work on decode algorithm
+6eae2fc3bcea29fc4a4869c65e1534c351afef39 f4a45a46691edb7844b884c1db99b0e3bdca75d2 William Wang <william1.wang@intel.com> 1689169314 -0700	commit: work
+f4a45a46691edb7844b884c1db99b0e3bdca75d2 f4a45a46691edb7844b884c1db99b0e3bdca75d2 William Wang <william1.wang@intel.com> 1689614490 -0700	reset: moving to HEAD
+f4a45a46691edb7844b884c1db99b0e3bdca75d2 582de622c81af304cedfe52f11ba7a45d3fb1cb1 William Wang <william1.wang@intel.com> 1689614525 -0700	checkout: moving from move-to-device-code-work to 582de622c81af304cedfe52f11ba7a45d3fb1cb1
+582de622c81af304cedfe52f11ba7a45d3fb1cb1 04513e82f1738e929f2f964cf28a6fd8f6d60374 William Wang <william1.wang@intel.com> 1689614624 -0700	checkout: moving from 582de622c81af304cedfe52f11ba7a45d3fb1cb1 to 04513e82f1738e929f2f964cf28a6fd8f6d60374
+04513e82f1738e929f2f964cf28a6fd8f6d60374 582de622c81af304cedfe52f11ba7a45d3fb1cb1 William Wang <william1.wang@intel.com> 1689614647 -0700	checkout: moving from 04513e82f1738e929f2f964cf28a6fd8f6d60374 to main
+582de622c81af304cedfe52f11ba7a45d3fb1cb1 4ccdff45b65684ae528d2c3af420c12e3f16567a William Wang <william1.wang@intel.com> 1689614654 -0700	checkout: moving from main to 4ccdff45b65684ae528d2c3af420c12e3f16567a
+4ccdff45b65684ae528d2c3af420c12e3f16567a f4a45a46691edb7844b884c1db99b0e3bdca75d2 William Wang <william1.wang@intel.com> 1689614837 -0700	checkout: moving from 4ccdff45b65684ae528d2c3af420c12e3f16567a to origin/move-to-device-code-work
+f4a45a46691edb7844b884c1db99b0e3bdca75d2 f4a45a46691edb7844b884c1db99b0e3bdca75d2 William Wang <william1.wang@intel.com> 1689614860 -0700	checkout: moving from f4a45a46691edb7844b884c1db99b0e3bdca75d2 to move-to-device-code-work
+f4a45a46691edb7844b884c1db99b0e3bdca75d2 f4a705b7c626cac8f344a433000c72b887e385a1 William Wang <william1.wang@intel.com> 1692120551 -0700	commit: continue work
