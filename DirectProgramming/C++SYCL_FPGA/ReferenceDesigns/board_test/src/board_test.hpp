@@ -357,9 +357,9 @@ size_t ShimMetrics::TestGlobalMem(sycl::queue &q) {
 // More details about these funtions can be found with the corresponsing
 // definitions
 // 1. size_t TestGlobalMem(queue &q)
-// 2. struct Speed WriteSpeed(queue &q, buffer<char,1> &device_buffer1, char
+// 2. struct Speed WriteSpeed(queue &q, buffer<char,1> &device_buffer, char
 // *hostbuf_wr, size_t block_bytes, size_t total_bytes)
-// 3. struct Speed ReadSpeed(queue &q, buffer<char,1> &device_buffer1, char
+// 3. struct Speed ReadSpeed(queue &q, buffer<char,1> &device_buffer, char
 // *hostbuf_rd, size_t block_bytes, size_t total_bytes)
 // 4. struct Speed ReadWriteSpeed(queue &q, buffer<char, 1> &device_buffer1, 
 // buffer<char, 1> &device_buffer2, char *hostbuf_1, char *hostbuf_2, 
