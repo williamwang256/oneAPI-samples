@@ -5,10 +5,10 @@
 
 #include "exception_handler.hpp"
 
-constexpr size_t kKB = 1024;
+// constexpr size_t kKB = 1024;
 constexpr size_t kMB = 1024 * 1024;
-constexpr size_t kGB = 1024 * 1024 * 1024;
-constexpr size_t kRandomSeed = 1009;
+// constexpr size_t kGB = 1024 * 1024 * 1024;
+// constexpr size_t kRandomSeed = 1009;
 struct MyKernel {
   void operator()() const {
   }
@@ -52,7 +52,7 @@ int ReadWriteSpeed(sycl::queue &q,
   float throughput = ((float)total_bytes / kMB) / (float)time_span;
 
   std::cout << throughput << " MB/s" << std::endl;
-
+  return 0;
 }
 
 int bi_directional_speed_test(sycl::queue &q) {
@@ -62,8 +62,8 @@ int bi_directional_speed_test(sycl::queue &q) {
   constexpr size_t kMaxChars = kMaxBytes / sizeof(char);
 
   // Block size of each transfer in bytes
-  constexpr size_t kMinBytes = 32 * kKB;  // 32 KB
-  size_t block_bytes = kMinBytes;
+  // constexpr size_t kMinBytes = 32 * kKB;  // 32 KB
+  // size_t block_bytes = kMinBytes;
 
 
   // int kIterations = 8;
