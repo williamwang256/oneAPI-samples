@@ -193,7 +193,7 @@ struct Speed ReadSpeed(sycl::queue &q, sycl::buffer<char, 1> &device_buffer,
 // (i.e. size of 1 transfer)
 // 1.b At the same time as Step 1.a, read data from device in multiple transfers
 // as total_bytes > block_bytes (i.e. size of 1 transfer)
-// 2. Calculate bandwidth based on measured time for each transfer
+// 2. Calculate bandwidth based on measured time for all transfers
 
 struct Speed ReadWriteSpeed(sycl::queue &q,
                             sycl::buffer<char, 1> &device_buffer1,
@@ -205,12 +205,10 @@ struct Speed ReadWriteSpeed(sycl::queue &q,
 
   assert(num_xfers > 0);
 
-  // Execution time for each transfer
-  // double execution_times[num_xfers];
-
   // **** Write to device and then read from device **** //
 
   auto start = std::chrono::steady_clock::now();
+
   for (size_t i = 0; i < num_xfers; i++) {
 
     // Submit copy operation (explicit copy from host to device)
@@ -238,11 +236,13 @@ struct Speed ReadWriteSpeed(sycl::queue &q,
           device_buffer2, h, buf_range, buf_offset);
       h.copy(mem, &hostbuf_2[buf_offset]);
     });
+
   }
+
   // Wait for copy to complete
   q.wait();
 
-  // **** Get the time for each transfer from Sycl event array **** //
+  // **** Get the full time durations for all transfers **** //
 
   auto end = std::chrono::steady_clock::now();
   float time_span =
@@ -250,9 +250,9 @@ struct Speed ReadWriteSpeed(sycl::queue &q,
           .count();
 
   struct Speed speed_wr;
-  speed_wr.average = 0.0f;
-  speed_wr.fastest = 0.0f;
-  speed_wr.slowest = 1.0e7f;
+  // speed_wr.average = 0.0f;
+  // speed_wr.fastest = 0.0f;
+  // speed_wr.slowest = 1.0e7f;
 
   // for (size_t i = 0; i < num_xfers; i++) {
   //   float time_s =
@@ -266,10 +266,10 @@ struct Speed ReadWriteSpeed(sycl::queue &q,
   //   speed_wr.average += time_ns;
   // }
 
-  // Average write bandwidth
+  // Average read-write bandwidth
   // speed_wr.average =
   //     ((float)total_bytes / kMB) / ((float)speed_wr.average * 1e-9);
-  speed_wr.total = ((float)total_bytes / kMB) / time_span;
+  speed_wr.total = ((float)total_bytes * 2 / kMB) / time_span;
 
   return speed_wr;
 
@@ -287,7 +287,7 @@ struct Speed ReadWriteSpeed(sycl::queue &q,
 // device (allocated in calling function)
 // 3. maxchars - size of comparison
 // Returns:
-// true if verification is successfull
+// true if verification is successful
 
 // The function does the following tasks:
 // 1. Compare maxchars elements of hostbuf_rd to hostbuf_wr

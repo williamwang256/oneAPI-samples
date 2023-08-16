@@ -549,7 +549,7 @@ int ShimMetrics::HostSpeed(sycl::queue &q) {
   // Fastest transfer value used in read-write bandwidth calculation
   float readwrite_topspeed = 0;
 
-  std::cout << "\nReading-writing " << (kMaxBytes / kKB)
+  std::cout << "\nReading and writing " << (kMaxBytes / kKB)
             << " KBs with block size (in bytes) below:\n\n";
   std::cout << std::setw(10) << std::right << "Block Size "
             // << std::setw(10) << std::right << "Avg"
