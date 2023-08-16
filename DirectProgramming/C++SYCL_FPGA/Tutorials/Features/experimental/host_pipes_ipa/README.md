@@ -319,6 +319,8 @@ struct Kernel {
 };
 ```
 
+On the host side, we write all the data to `PipeIn`, launch the kernel, and finally read the data back from `PipeOut` to verify it.
+
 ## Build the `Host Pipes` Tutorial
 
 >**Note**: When working with the command-line interface (CLI), you should configure the oneAPI toolkits using environment variables. Set up your CLI environment by sourcing the `setvars` script in the root of your oneAPI installation every time you open a new terminal window. This practice ensures that your compiler, libraries, and tools are ready for development.
@@ -352,19 +354,19 @@ struct Kernel {
 
 3. Compile the design. (The provided targets match the recommended development flow.)
 
-   1. Compile and run for emulation (fast compile time, targets emulates an FPGA device).
+   1. Compile and run for emulation (fast compile time, targets emulated FPGA device).
       ```
       make fpga_emu
       ```
-   2. Generate the HTML optimization reports. (See [Read the Reports](#read-the-reports) below for information on finding and understanding the reports.)
+   2. Generate the optimization report. (See [Read the Reports](#read-the-reports) below for information on finding and understanding the reports.)
       ```
       make report
       ```
-   3. Compile for simulation (fast compile time, targets simulated FPGA device).
+   3. Compile and run for simulation (fast compile time, targets simulated FPGA device).
       ```
       make fpga_sim
       ```
-   4. Compile and run on FPGA hardware (longer compile time, targets an FPGA device).
+   4. Compile and run for FPGA hardware (longer compile time, targets an FPGA device).
       ```
       make fpga
       ```	
@@ -387,7 +389,7 @@ struct Kernel {
 
 3. Compile the design. (The provided targets match the recommended development flow.)
 
-   1. Compile for emulation (fast compile time, targets emulated FPGA device).
+   1. Compile and run for emulation (fast compile time, targets emulated FPGA device).
       ```
       nmake fpga_emu
       ```
@@ -395,11 +397,11 @@ struct Kernel {
       ```
       nmake report
       ```
-   3. Compile for simulation (fast compile time, targets simulated FPGA device, reduced problem size).
+   3. Compile and run for simulation (fast compile time, targets simulated FPGA device).
       ```
       nmake fpga_sim
       ```
-   4. Compile and run on FPGA hardware (longer compile time, targets an FPGA device).
+   4. Compile and run for FPGA hardware (longer compile time, targets an FPGA device).
       ```
       nmake fpga
       ```
