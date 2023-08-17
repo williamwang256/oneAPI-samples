@@ -58,10 +58,12 @@ You can also find more information about [troubleshooting build errors](/DirectP
 
 This tutorial illustrates some key concepts:
 
-- Declaring a Host Pipe
-- Host Pipe Read/Write API
+- [Declaring and Configuring a Host Pipe](#declaring-and-configuring-a-host-pipe)
+- [Avalon Streaming Sideband Signals](#avalon-streaming-sideband-signals)
+- [Host Pipe Read and Write APIs](#host-pipe-read-and-write-apis)
+- [Host Pipe Connections](#host-pipe-connections)
 
-### Declaring a Host Pipe
+### Declaring and Configuring a Host Pipe
 
 Each individual host pipe is a function scope class declaration of the templated `pipe` class. The first template parameter should be a user-defined type that differentiates this particular pipe from the others. The second template parameter defines the datatype of each element carried by the pipe. The third template parameter defines the pipe capacity, which is the guaranteed minimum number of elements of datatype that can be held in the pipe. In other words, for a given pipe with capacity `c`, the compiler guarantees that operations on the pipe will not block due to capacity as long as, for any consecutive `n` operations on the pipe, the number of writes to the pipe minus the number of reads does not exceed `c`. These template parameters are summarized below, and must be specified in the given order.
 
@@ -150,7 +152,7 @@ using ThirdPipeInstance = sycl::ext::intel::experimental::pipe<
 
 See the [FPGA Optimization Guide for Intel® oneAPI Toolkits](https://www.intel.com/content/www/us/en/docs/oneapi-fpga-add-on/optimization-guide/current/host-pipes-rtl-interfaces.html) for more information on configuring RTL interfaces.
 
-### Host Pipe API
+### Host Pipe Read and Write APIs
 
 Host Pipes expose read and write interfaces that allow a single element to be read or written in FIFO order to the pipe. These read and write interfaces are static class methods on the templated classes described in the [Declaring a Host Pipe](#declaring-a-host-pipe) section. The API provides the following interfaces:
 
