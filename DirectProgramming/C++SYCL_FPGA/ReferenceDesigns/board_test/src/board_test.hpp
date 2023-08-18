@@ -552,20 +552,22 @@ int ShimMetrics::HostSpeed(sycl::queue &q) {
   std::cout << "\nReading and writing " << (kMaxBytes / kKB)
             << " KBs with block size (in bytes) below:\n\n";
   std::cout << std::setw(10) << std::right << "Block Size "
-            // << std::setw(10) << std::right << "Avg"
-            // << std::setw(10) << std::right << "Max"
-            // << std::setw(10) << std::right << "Min"
+            << std::setw(10) << std::right << "Avg"
+            << std::setw(10) << std::right << "Max"
+            << std::setw(10) << std::right << "Min"
             << std::setw(10) << std::right << "End-End"
             << std::setw(10) << std::right << "(MB/s)\n";
 
   for (size_t i = 0; i < iterations; i++, block_bytes *= 2) {
     std::cout << std::setw(10) << block_bytes << " "
               << std::fixed << std::setprecision(2)
-              // << std::setw(10) << "n/a"
-              // << std::setw(10) << "n/a"
-              // << std::setw(10) << "n/a"
+              << std::setw(10) << rw_bw[i].average
+              << std::setw(10) << rw_bw[i].fastest
+              << std::setw(10) << rw_bw[i].slowest
               << std::setw(10) << rw_bw[i].total << "\n";
-    // if (rw_bw[i].fastest > readwrite_topspeed) readwrite_topspeed = rw_bw[i].fastest;
+    if (rw_bw[i].fastest > readwrite_topspeed) {
+      readwrite_topspeed = rw_bw[i].fastest;
+    }
     if (rw_bw[i].total > readwrite_topspeed) {
       readwrite_topspeed = rw_bw[i].total;
     }

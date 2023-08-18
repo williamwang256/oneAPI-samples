@@ -205,14 +205,15 @@ struct Speed ReadWriteSpeed(sycl::queue &q,
 
   assert(num_xfers > 0);
 
-  // **** Write to device and then read from device **** //
+  // Sycl events (read + write) for each transfer
+  sycl::event evt[num_xfers][2];
 
-  auto start = std::chrono::steady_clock::now();
+  // **** Write to device and then read from device **** //
 
   for (size_t i = 0; i < num_xfers; i++) {
 
     // Submit copy operation (explicit copy from host to device)
-    q.submit([&](sycl::handler &h) {
+    evt[i][0] = q.submit([&](sycl::handler &h) {
       // Range of buffer that needs to accessed
       auto buf_range = block_bytes / sizeof(char);
       // offset starts at 0 - incremented by transfer size each iteration (i.e.
@@ -225,7 +226,7 @@ struct Speed ReadWriteSpeed(sycl::queue &q,
     });
 
     // Submit copy operation (explicit copy from device to host)
-    q.submit([&](sycl::handler &h) {
+    evt[i][1] = q.submit([&](sycl::handler &h) {
       // Range of buffer that needs to accessed
       auto buf_range = block_bytes / sizeof(char);
       // offset starts at 0 - incremented by transfer size each iteration (i.e.
@@ -244,34 +245,35 @@ struct Speed ReadWriteSpeed(sycl::queue &q,
 
   // **** Get the full time durations for all transfers **** //
 
-  auto end = std::chrono::steady_clock::now();
-  float time_span =
-      std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
-          .count();
+  struct Speed speed_rw;
+  speed_rw.average = 0.0f;
+  speed_rw.fastest = 0.0f;
+  speed_rw.slowest = 1.0e7f;
 
-  struct Speed speed_wr;
-  // speed_wr.average = 0.0f;
-  // speed_wr.fastest = 0.0f;
-  // speed_wr.slowest = 1.0e7f;
+  for (size_t i = 0; i < num_xfers; i++) {
+    sycl::event evt1 = SyclWhichEventStartedFirst(evt[i][0], evt[i][1]);
+    sycl::event evt2 = SyclWhichEventEndedLast(evt[i][0], evt[i][1]);
+    float time_ns = SyclGetTotalTimeNs(evt1, evt2);
+    float speed_MBps = (((float)block_bytes * 2) / kMB) / ((float)time_ns * 1e-9);
 
-  // for (size_t i = 0; i < num_xfers; i++) {
-  //   float time_s =
-  //   std::chrono::duration_cast<std::chrono::duration<double>>(end -
-  //   start).count(); float speed_MBps = ((float)block_bytes / kMB) /
-  //   ((float)time_ns * 1e-9);
+    if (speed_MBps > speed_rw.fastest) speed_rw.fastest = speed_MBps;
+    if (speed_MBps < speed_rw.slowest) speed_rw.slowest = speed_MBps;
 
-  //   if (speed_MBps > speed_wr.fastest) speed_wr.fastest = speed_MBps;
-  //   if (speed_MBps < speed_wr.slowest) speed_wr.slowest = speed_MBps;
+    speed_rw.average += time_ns;
+  }
 
-  //   speed_wr.average += time_ns;
-  // }
+  // Average read + write bandwidth
+  speed_rw.average =
+      (((float)total_bytes * 2) / kMB) / ((float)speed_rw.average * 1e-9);
 
-  // Average read-write bandwidth
-  // speed_wr.average =
-  //     ((float)total_bytes / kMB) / ((float)speed_wr.average * 1e-9);
-  speed_wr.total = ((float)total_bytes * 2 / kMB) / time_span;
+  sycl::event evt1 = SyclWhichEventStartedFirst(evt[0][0], evt[0][1]);
+  sycl::event evt2 = SyclWhichEventEndedLast(evt[num_xfers - 1][0],
+                                             evt[num_xfers - 1][1]);
+  speed_rw.total =
+      (((float)total_bytes * 2) / kMB) /
+      ((float)SyclGetTotalTimeNs(evt1, evt2) * 1e-9);
 
-  return speed_wr;
+  return speed_rw;
 
 } // End of ReadWriteSpeed
 
