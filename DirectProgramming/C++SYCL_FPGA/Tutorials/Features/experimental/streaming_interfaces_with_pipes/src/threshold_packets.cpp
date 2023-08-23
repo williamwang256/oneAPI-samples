@@ -38,7 +38,7 @@ struct ThresholdKernel {
       end_of_packet          = in_beat.eop;
 
       // Threshold
-      if ((int)(pixel) > THRESHOLD) pixel = THRESHOLD;
+      if (pixel > (unsigned char)(THRESHOLD)) pixel = THRESHOLD;
 
       // Write out result
       StreamingBeatT out_beat(pixel, start_of_packet, end_of_packet);
@@ -96,7 +96,8 @@ int main() {
   for (int i = 0; i < (width * height); ++i) {
     bool start_of_packet = (i == 0);
     bool end_of_packet   = (i == ((width * height) - 1));
-    StreamingBeatT in_beat(i, start_of_packet, end_of_packet);
+    StreamingBeatT in_beat((unsigned char)(i % sizeof(unsigned char)),
+                           start_of_packet, end_of_packet);
     InPixelPipe::write(q, in_beat);
   }
 
@@ -107,7 +108,7 @@ int main() {
   bool passed = true;
   for (int i = 0; i < (width * height); ++i) {
     StreamingBeatT out_beat = OutPixelPipe::read(q);
-    passed &= (out_beat.data <= THRESHOLD);
+    passed &= (out_beat.data <= (unsigned char)(THRESHOLD));
   }
 
   std::cout << std::endl << (passed ? "PASSED" : "FAILED") << std::endl;
