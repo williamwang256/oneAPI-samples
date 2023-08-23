@@ -16,8 +16,8 @@ constexpr int kBitsPerSymbol = 8;
 constexpr int kSymbolsPerBeat = 8;
 
 // StreamingBeat struct to support Avalon packet sideband signals
-using PipeDataT = ac_int<kBitsPerSymbol * kSymbolsPerBeat, false>;
-using StreamingBeatT = sycl::ext::intel::experimental::StreamingBeat<PipeDataT, true, true>;
+using PipeDataT = unsigned char; // ac_int<kBitsPerSymbol * kSymbolsPerBeat, false>;
+using StreamingBeatT = sycl::ext::intel::experimental::StreamingBeat<PipeDataT, true, false>;
 
 // A kernel that thresholds pixel values in an image over a stream. Uses start
 // of packet and end of packet signals on the streams to determine the beginning
@@ -41,7 +41,7 @@ struct ThresholdKernel {
       if ((int)(pixel) > THRESHOLD) pixel = THRESHOLD;
 
       // Write out result
-      StreamingBeatT out_beat(pixel, start_of_packet, end_of_packet, 0);
+      StreamingBeatT out_beat(pixel, start_of_packet, end_of_packet);
       OutPixelPipe::write(out_beat);
 
     }
@@ -96,7 +96,7 @@ int main() {
   for (int i = 0; i < (width * height); ++i) {
     bool start_of_packet = (i == 0);
     bool end_of_packet   = (i == ((width * height) - 1));
-    StreamingBeatT in_beat(i, start_of_packet, end_of_packet, 0);
+    StreamingBeatT in_beat(i, start_of_packet, end_of_packet);
     InPixelPipe::write(q, in_beat);
   }
 
