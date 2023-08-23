@@ -10,7 +10,7 @@ endif()
 
 cmake_minimum_required (VERSION 3.7.2)
 
-project(host_pipes CXX)
+project(threshold_packets CXX)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -19,8 +19,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 ###############################################################################
 ### Customize these build variables
 ###############################################################################
-set(SOURCE_FILES src/host_pipes_with_sideband_signals.cpp)
-set(TARGET_NAME host_pipes)
+set(SOURCE_FILES src/threshold_packets.cpp)
+set(TARGET_NAME threshold_packets)
 
 # Use cmake -DFPGA_DEVICE=<device-family> to choose a different device.
 if(NOT DEFINED FPGA_DEVICE)

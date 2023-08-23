@@ -14,29 +14,25 @@ class KernelCompute;
 // Arbitrary computation function
 int SomethingComplicated(int val) { return (int)(val * sqrt(val)); }
 
-constexpr int kBitsPerSymbol = 8;
-constexpr int kSymbolsPerBeat = 8;
-using PipeDataT = ac_int<kBitsPerSymbol * kSymbolsPerBeat, false>;
-using StreamingBeatT = sycl::ext::intel::experimental::StreamingBeat<PipeDataT, true, false>;
-
-// Host pipe properties
+// Host pipe properties (listed here are the defaults; this achieves the same
+// behavior as not specifying any of these properties)
 using PipePropertiesT = decltype(sycl::ext::oneapi::experimental::properties(
     sycl::ext::intel::experimental::ready_latency<0>,
-    sycl::ext::intel::experimental::bits_per_symbol<kBitsPerSymbol>,
+    sycl::ext::intel::experimental::bits_per_symbol<8>,
     sycl::ext::intel::experimental::uses_valid<true>,
     sycl::ext::intel::experimental::first_symbol_in_high_order_bits<true>,
     sycl::ext::intel::experimental::protocol_avalon_streaming_uses_ready));
 
 using PipeIn = sycl::ext::intel::experimental::pipe<
     InputPipe,      // An identifier for the pipe
-    StreamingBeatT, // The type of data in the pipe
+    int,            // The type of data in the pipe
     8,              // The capacity of the pipe
     PipePropertiesT // Customizable pipe properties
     >;
 
 using PipeOut = sycl::ext::intel::experimental::pipe<
     OutputPipe,     // An identifier for the pipe
-    StreamingBeatT, // The type of data in the pipe
+    int,            // The type of data in the pipe
     8,              // The capacity of the pipe
     PipePropertiesT // Customizable pipe properties
     >;
@@ -48,17 +44,9 @@ struct Kernel {
 
   void operator()() const {
     for (size_t i = 0; i < count; i++) {
-
-      StreamingBeatT b_in = PipeIn::read();
-      PipeDataT d = b_in.data;
-      bool sop = b_in.sop;
-      bool eop = b_in.eop;
-      // int empty = b_in.empty;
-
+      auto d = PipeIn::read();
       auto r = SomethingComplicated(d);
-
-      StreamingBeatT b_out(r, sop, eop);
-      PipeOut::write(b_out);
+      PipeOut::write(r);
     }
   }
 };
@@ -84,8 +72,7 @@ int main() {
 
     // Generate input data for the kernel
     for (int i = 0; i < count; i++) {
-      StreamingBeatT b_in(i, i == 0, i == count - 1);
-      PipeIn::write(q, b_in);
+      PipeIn::write(q, i);
     }
 
     q.single_task<KernelCompute>(Kernel{count});
@@ -94,21 +81,13 @@ int main() {
     // (no need to wait on kernel to finish as the pipe reads are blocking)
     bool passed = true;
     for (int i = 0; i < count; i++) {
-      StreamingBeatT b_out = PipeOut::read(q);
-      PipeDataT val_device = b_out.data;
-      bool sop = b_out.sop;
-      bool eop = b_out.eop;
-      // int empty = b_out.empty;
-      std::cout << "Data: "  << std::setw(2) << (int)(val_device)
-                << "; sop: " << std::setw(2) << sop
-                << "; eop: " << std::setw(2) << eop
-                // << "; empty: " << empty 
-                << std::endl;
+      int val_device = PipeOut::read(q);
+      std::cout << "Data: " << std::setw(2) << val_device << std::endl;
       int val_host = SomethingComplicated(i);
       passed &= (val_device == val_host);
       if (val_device != val_host) {
-        std::cout << "Error: expected " << val_host << ", got "
-                  << (int)(val_device) << std::endl;
+        std::cout << "Error: expected " << val_host << ", got " << val_device
+                  << std::endl;
       }
     }
     std::cout << std::endl << (passed ? "PASSED" : "FAILED") << std::endl;
