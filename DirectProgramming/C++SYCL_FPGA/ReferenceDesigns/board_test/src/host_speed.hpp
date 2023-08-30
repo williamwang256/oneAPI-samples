@@ -169,6 +169,115 @@ struct Speed ReadSpeed(sycl::queue &q, sycl::buffer<char, 1> &device_buffer,
 
 }  // End of ReadSpeed
 
+///////////////////////////////////////
+// **** ReadWriteSpeed function **** //
+///////////////////////////////////////
+
+// Inputs:
+// 1. queue &q - queue to submit operation
+// 2. buffer<char,1> &device_buffer1 - device buffer to write to (created in
+// calling function)
+// 3. buffer<char,1> &device_buffer2 - device buffer to read from (created in
+// calling function)
+// 4. char *hostbuf_1 - host memory that contains input data to be written to
+// device (allocated in calling function)
+// 5. char *hostbuf_2 - pointer to host memory to store data that is read from
+// device (allocated in calling function)
+// 6. size_t block_bytes - size of 1 transfer to device (in bytes)
+// 7. size_t total_bytes - total number of bytes to transfer
+// Returns:
+// struct Speed with the transfer times
+
+// The function does the following tasks:
+// 1.a Write data to device in multiple transfers as total_bytes > block_bytes
+// (i.e. size of 1 transfer)
+// 1.b At the same time as Step 1.a, read data from device in multiple transfers
+// as total_bytes > block_bytes (i.e. size of 1 transfer)
+// 2. Calculate bandwidth based on measured time for all transfers
+
+struct Speed ReadWriteSpeed(sycl::queue &q,
+                            sycl::buffer<char, 1> &device_buffer1,
+                            sycl::buffer<char, 1> &device_buffer2,
+                            char *hostbuf_1, char *hostbuf_2,
+                            size_t block_bytes, size_t total_bytes) {
+  // Total number of iterations to transfer all bytes in block_bytes sizes
+  size_t num_xfers = total_bytes / block_bytes;
+
+  assert(num_xfers > 0);
+
+  // Sycl events (read + write) for each transfer
+  sycl::event evt[num_xfers][2];
+
+  // **** Write to device and then read from device **** //
+
+  for (size_t i = 0; i < num_xfers; i++) {
+
+    // Submit copy operation (explicit copy from host to device)
+    evt[i][0] = q.submit([&](sycl::handler &h) {
+      // Range of buffer that needs to accessed
+      auto buf_range = block_bytes / sizeof(char);
+      // offset starts at 0 - incremented by transfer size each iteration (i.e.
+      // block_bytes)
+      auto buf_offset = (i * block_bytes) / sizeof(char);
+      // Accessor to access range of device buffer at buf_offset
+      sycl::accessor<char, 1, sycl::access::mode::write> mem(
+          device_buffer1, h, buf_range, buf_offset);
+      h.copy(&hostbuf_1[buf_offset], mem);
+    });
+
+    // Submit copy operation (explicit copy from device to host)
+    evt[i][1] = q.submit([&](sycl::handler &h) {
+      // Range of buffer that needs to accessed
+      auto buf_range = block_bytes / sizeof(char);
+      // offset starts at 0 - incremented by transfer size each iteration (i.e.
+      // block_bytes)
+      auto buf_offset = (i * block_bytes) / sizeof(char);
+      // Accessor to access range of device buffer at buf_offset
+      sycl::accessor<char, 1, sycl::access::mode::read> mem(
+          device_buffer2, h, buf_range, buf_offset);
+      h.copy(mem, &hostbuf_2[buf_offset]);
+    });
+
+  }
+
+  // Wait for copy to complete
+  q.wait();
+
+  // **** Get the full time durations for all transfers **** //
+
+  struct Speed speed_rw;
+  speed_rw.average = 0.0f;
+  speed_rw.fastest = 0.0f;
+  speed_rw.slowest = 1.0e7f;
+
+  for (size_t i = 0; i < num_xfers; i++) {
+    sycl::event evt1 = SyclWhichEventStartedFirst(evt[i][0], evt[i][1]);
+    sycl::event evt2 = SyclWhichEventEndedLast(evt[i][0], evt[i][1]);
+    float time_ns = SyclGetTotalTimeNs(evt1, evt2);
+    float speed_MBps = (((float)block_bytes * 2) / kMB) / ((float)time_ns * 1e-9);
+
+    if (speed_MBps > speed_rw.fastest) speed_rw.fastest = speed_MBps;
+    if (speed_MBps < speed_rw.slowest) speed_rw.slowest = speed_MBps;
+
+    speed_rw.average += time_ns;
+  }
+
+  // Average read + write bandwidth
+  speed_rw.average =
+      (((float)total_bytes * 2) / kMB) / ((float)speed_rw.average * 1e-9);
+
+  sycl::event evt1 = SyclWhichEventStartedFirst(evt[0][0], evt[0][1]);
+  sycl::event evt2 = SyclWhichEventEndedLast(evt[num_xfers - 1][0],
+                                             evt[num_xfers - 1][1]);
+  speed_rw.total =
+      (((float)total_bytes * 2) / kMB) /
+      ((float)SyclGetTotalTimeNs(evt1, evt2) * 1e-9);
+
+  return speed_rw;
+
+} // End of ReadWriteSpeed
+
+
 /////////////////////////////////////
 // **** CheckResults function **** //
 /////////////////////////////////////
@@ -180,7 +289,7 @@ struct Speed ReadSpeed(sycl::queue &q, sycl::buffer<char, 1> &device_buffer,
 // device (allocated in calling function)
 // 3. maxchars - size of comparison
 // Returns:
-// true if verification is successfull
+// true if verification is successful
 
 // The function does the following tasks:
 // 1. Compare maxchars elements of hostbuf_rd to hostbuf_wr

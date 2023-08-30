@@ -118,6 +118,50 @@ unsigned long SyclGetQStExecTimeNs(sycl::event e) {
   return (end_time - start_time);
 }  // End of SyclGetQStExecTimeNs
 
+///////////////////////////////////////////////////
+// **** SyclWhichEventStartedFirst function **** //
+///////////////////////////////////////////////////
+
+// Input:
+// event e1 - Sycl event with profiling information
+// event e2 - another Sycl event with profiling information
+// Returns:
+// Which event started first based on time at command submission
+
+// The function does the following task:
+// Gets profiling information from two different Sycl events and
+// returns the event with the earlier start time
+
+sycl::event SyclWhichEventStartedFirst(sycl::event e1, sycl::event e2) {
+  unsigned long start_time1 =
+      e1.get_profiling_info<sycl::info::event_profiling::command_start>();
+  unsigned long start_time2 =
+      e2.get_profiling_info<sycl::info::event_profiling::command_start>();
+  return (start_time1 < start_time2) ? e1 : e2;
+}
+
+///////////////////////////////////////////////////
+// **** SyclWhichEventEndedLast function **** //
+///////////////////////////////////////////////////
+
+// Input:
+// event e1 - Sycl event with profiling information
+// event e2 - another Sycl event with profiling information
+// Returns:
+// Which event ended last based on time at command end
+
+// The function does the following task:
+// Gets profiling information from two different Sycl events and
+// returns the event with the later end time
+
+sycl::event SyclWhichEventEndedLast(sycl::event e1, sycl::event e2) {
+  unsigned long end_time1 =
+      e1.get_profiling_info<sycl::info::event_profiling::command_end>();
+  unsigned long end_time2 =
+      e2.get_profiling_info<sycl::info::event_profiling::command_end>();
+  return (end_time1 > end_time2) ? e1 : e2;
+}
+
 ///////////////////////////////////////////
 // **** SyclGetTotalTimeNs function **** //
 ///////////////////////////////////////////

@@ -361,9 +361,12 @@ size_t ShimMetrics::TestGlobalMem(sycl::queue &q) {
 // *hostbuf_wr, size_t block_bytes, size_t total_bytes)
 // 3. struct Speed ReadSpeed(queue &q, buffer<char,1> &device_buffer, char
 // *hostbuf_rd, size_t block_bytes, size_t total_bytes)
-// 4. bool CheckResults
-// 4. unsigned long SyclGetQStExecTimeNs(event e)
-// 5. unsigned long SyclGetTotalTimeNs(event first_evt, event last_evt)
+// 4. struct Speed ReadWriteSpeed(queue &q, buffer<char, 1> &device_buffer1,
+// buffer<char, 1> &device_buffer2, char *hostbuf_1, char *hostbuf_2,
+// size_t block_bytes, size_t total_bytes)
+// 5. bool CheckResults
+// 6. unsigned long SyclGetQStExecTimeNs(event e)
+// 7. unsigned long SyclGetTotalTimeNs(event first_evt, event last_evt)
 
 int ShimMetrics::HostSpeed(sycl::queue &q) {
   // Total bytes to transfer
@@ -386,6 +389,11 @@ int ShimMetrics::HostSpeed(sycl::queue &q) {
   // Creating device buffer to span kMaxBytes size
   // Buffer that WriteSpeed and ReadSpeed functions write to & read from
   sycl::buffer<char, 1> device_buffer{sycl::range<1>{kMaxChars}};
+  // Two buffers used by the ReadWriteSpeed function
+  sycl::buffer<char, 1> device_buffer_rw1{
+      sycl::range<1>{kMaxChars}, {sycl::property::buffer::mem_channel{1}}};
+  sycl::buffer<char, 1> device_buffer_rw2{
+      sycl::range<1>{kMaxChars}, {sycl::property::buffer::mem_channel{2}}};
 
   // **** Host memory allocation and initialization **** //
 
@@ -395,14 +403,22 @@ int ShimMetrics::HostSpeed(sycl::queue &q) {
   char *hostbuf_rd = new char[kMaxBytes];
   char *hostbuf_wr = new char[kMaxBytes];
 
+  // hostbuf_rw1 is used by ReadWriteSpeed function to get input data to device
+  // buffer and hostbuf_rw2 is used to store data read from device buffer
+  char *hostbuf_rw1 = new char[kMaxBytes];
+  char *hostbuf_rw2 = new char[kMaxBytes];
+
   // Initializing input on host to be written to device buffer
   srand(kRandomSeed);
   // Create sequence: 0 rand1 ~2 rand2 4 ...
   for (size_t j = 0; j < kMaxChars; j++) {
-    if (j % 2 == 0)
+    if (j % 2 == 0) {
       hostbuf_wr[j] = (j & 2) ? ~j : j;
-    else
+      hostbuf_rw1[j] = (j & 2) ? ~j : j;
+    } else {
       hostbuf_wr[j] = rand() * rand();
+      hostbuf_rw1[j] = rand() * rand();
+    }
   }
 
   // *** Warm-up link before measuring bandwidth *** //
@@ -411,6 +427,12 @@ int ShimMetrics::HostSpeed(sycl::queue &q) {
   WriteSpeed(q, device_buffer, hostbuf_wr, block_bytes, kMaxBytes);
   // Reading from device buffer into allocated host memory
   ReadSpeed(q, device_buffer, hostbuf_rd, block_bytes, kMaxBytes);
+  // Reading and writing between device buffer and allocated host memory
+  // Initial run writes to device_buffer2 so when we read from it later, we can
+  // verify the results. The data read on this first run (from device_buffer1)
+  // will contain garbage data.
+  ReadWriteSpeed(q, device_buffer_rw2, device_buffer_rw1, hostbuf_rw1,
+                 hostbuf_rw2, block_bytes, kMaxBytes);
 
   // **** Block transfers to measure bandwidth **** //
 
@@ -424,6 +446,7 @@ int ShimMetrics::HostSpeed(sycl::queue &q) {
   // values from each iteration are analyzed to report bandwidth
   struct Speed rd_bw[iterations];
   struct Speed wr_bw[iterations];
+  struct Speed rw_bw[iterations];
 
   // std::cout is manipulated to format output
   // Storing old state of std::cout to restore
@@ -441,8 +464,11 @@ int ShimMetrics::HostSpeed(sycl::queue &q) {
               << " KB blocks ...\n";
     wr_bw[i] = WriteSpeed(q, device_buffer, hostbuf_wr, block_bytes, kMaxBytes);
     rd_bw[i] = ReadSpeed(q, device_buffer, hostbuf_rd, block_bytes, kMaxBytes);
+    rw_bw[i] = ReadWriteSpeed(q, device_buffer_rw1, device_buffer_rw2,
+                              hostbuf_rw1, hostbuf_rw2, block_bytes, kMaxBytes);
     // Verify value read back matches value that was written to device
     result &= CheckResults(hostbuf_wr, hostbuf_rd, kMaxChars);
+    result &= CheckResults(hostbuf_rw1, hostbuf_rw2, kMaxChars);
     // Restoring old format after each CheckResults function call to print
     // correct format in current loop
     std::cout.copyfmt(old_state);
@@ -462,13 +488,21 @@ int ShimMetrics::HostSpeed(sycl::queue &q) {
   float write_topspeed = 0;
 
   std::cout << "\nWriting " << (kMaxBytes / kKB)
-            << " KBs with block size (in bytes) below:\n";
-  std::cout << "\nBlock_Size Avg Max Min End-End (MB/s)\n";
+            << " KBs with block size (in bytes) below:\n\n";
+  std::cout << std::setw(10) << std::right << "Block Size "
+            << std::setw(10) << std::right << "Avg"
+            << std::setw(10) << std::right << "Max"
+            << std::setw(10) << std::right << "Min"
+            << std::setw(10) << std::right << "End-End"
+            << std::setw(10) << std::right << "(MB/s)\n";
 
   for (size_t i = 0; i < iterations; i++, block_bytes *= 2) {
-    std::cout << std::setw(8) << block_bytes << " " << std::setprecision(2)
-              << std::fixed << wr_bw[i].average << " " << wr_bw[i].fastest
-              << " " << wr_bw[i].slowest << " " << wr_bw[i].total << " \n";
+    std::cout << std::setw(10) << block_bytes << " "
+              << std::fixed << std::setprecision(2)
+              << std::setw(10) << wr_bw[i].average
+              << std::setw(10) << wr_bw[i].fastest
+              << std::setw(10) << wr_bw[i].slowest
+              << std::setw(10) << wr_bw[i].total << "\n";
     if (wr_bw[i].fastest > write_topspeed) write_topspeed = wr_bw[i].fastest;
     if (wr_bw[i].total > write_topspeed) write_topspeed = wr_bw[i].total;
     // Restoring old format after each CheckResults function call to print
@@ -485,15 +519,58 @@ int ShimMetrics::HostSpeed(sycl::queue &q) {
   float read_topspeed = 0;
 
   std::cout << "\nReading " << (kMaxBytes / kKB)
-            << " KBs with block size (in bytes) below:\n";
-  std::cout << "\nBlock_Size Avg Max Min End-End (MB/s)\n";
+            << " KBs with block size (in bytes) below:\n\n";
+  std::cout << std::setw(10) << std::right << "Block Size "
+            << std::setw(10) << std::right << "Avg"
+            << std::setw(10) << std::right << "Max"
+            << std::setw(10) << std::right << "Min"
+            << std::setw(10) << std::right << "End-End"
+            << std::setw(10) << std::right << "(MB/s)\n";
 
   for (size_t i = 0; i < iterations; i++, block_bytes *= 2) {
-    std::cout << std::setw(8) << block_bytes << " " << std::setprecision(2)
-              << std::fixed << rd_bw[i].average << " " << rd_bw[i].fastest
-              << " " << rd_bw[i].slowest << " " << rd_bw[i].total << " \n";
+    std::cout << std::setw(10) << block_bytes << " "
+              << std::fixed << std::setprecision(2)
+              << std::setw(10) << rd_bw[i].average
+              << std::setw(10) << rd_bw[i].fastest
+              << std::setw(10) << rd_bw[i].slowest
+              << std::setw(10) << rd_bw[i].total << "\n";
     if (rd_bw[i].fastest > read_topspeed) read_topspeed = rd_bw[i].fastest;
     if (rd_bw[i].total > read_topspeed) read_topspeed = rd_bw[i].total;
+    // Restoring old format after each CheckResults function call to print
+    // correct format in current loop
+    std::cout.copyfmt(old_state);
+  }
+
+  // **** Report results from readwrites to/from device **** //
+
+  // Restoring value of block_bytes as it changed in for loop above
+  block_bytes = kMinBytes;
+
+  // Fastest transfer value used in read-write bandwidth calculation
+  float readwrite_topspeed = 0;
+
+  std::cout << "\nReading and writing " << (kMaxBytes / kKB)
+            << " KBs with block size (in bytes) below:\n\n";
+  std::cout << std::setw(10) << std::right << "Block Size "
+            << std::setw(10) << std::right << "Avg"
+            << std::setw(10) << std::right << "Max"
+            << std::setw(10) << std::right << "Min"
+            << std::setw(10) << std::right << "End-End"
+            << std::setw(10) << std::right << "(MB/s)\n";
+
+  for (size_t i = 0; i < iterations; i++, block_bytes *= 2) {
+    std::cout << std::setw(10) << block_bytes << " "
+              << std::fixed << std::setprecision(2)
+              << std::setw(10) << rw_bw[i].average
+              << std::setw(10) << rw_bw[i].fastest
+              << std::setw(10) << rw_bw[i].slowest
+              << std::setw(10) << rw_bw[i].total << "\n";
+    if (rw_bw[i].fastest > readwrite_topspeed) {
+      readwrite_topspeed = rw_bw[i].fastest;
+    }
+    if (rw_bw[i].total > readwrite_topspeed) {
+      readwrite_topspeed = rw_bw[i].total;
+    }
     // Restoring old format after each CheckResults function call to print
     // correct format in current loop
     std::cout.copyfmt(old_state);
@@ -505,7 +582,9 @@ int ShimMetrics::HostSpeed(sycl::queue &q) {
 
   std::cout << "\nHost write top speed = " << std::setprecision(2) << std::fixed
             << write_topspeed << " MB/s\n";
-  std::cout << "Host read top speed = " << read_topspeed << " MB/s\n\n";
+  std::cout << "Host read top speed = " << read_topspeed << " MB/s\n";
+  std::cout << "Host read-write top speed = " << readwrite_topspeed
+            << " MB/s\n\n";
   std::cout << "\nHOST-TO-MEMORY BANDWIDTH = " << std::setprecision(0)
             << ((read_topspeed + write_topspeed) / 2) << " MB/s\n\n";
 
