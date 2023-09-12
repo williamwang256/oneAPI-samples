@@ -10,7 +10,7 @@ endif()
 
 cmake_minimum_required (VERSION 3.7.2)
 
-project(Add_oneAPI CXX)
+project(fft2d CXX)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -19,8 +19,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 ###############################################################################
 ### Customize these build variables
 ###############################################################################
-set(SOURCE_FILES src/add.cpp)
-set(TARGET_NAME add)
+set(SOURCE_FILES src/fft2d_demo.cpp)
+set(TARGET_NAME fft2d)
 
 # Use cmake -DFPGA_DEVICE=<board-support-package>:<board-variant> to choose a
 # different device. Here are a few device examples (this list is not
@@ -35,19 +35,35 @@ set(TARGET_NAME add)
 # You can also specify a device family (E.g. "Arria10" or "Stratix10") or a
 # specific part number (E.g. "10AS066N3F40E2SG") to generate a standalone IP.
 if(NOT DEFINED FPGA_DEVICE)
-    set(FPGA_DEVICE "10AS066N3F40E2SG")
+    set(FPGA_DEVICE "Agilex7")
 endif()
 
 # Use cmake -DUSER_FPGA_FLAGS=<flags> to set extra flags for FPGA backend
 # compilation. 
 set(USER_FPGA_FLAGS ${USER_FPGA_FLAGS})
 
+set(LOGN "10")
+
+if(DEFINED SET_LOGN)
+    set(LOGN ${SET_LOGN})
+endif()
+
+message(STATUS "LOGN=${LOGN}")
+
+set(PARALLELISM "8")
+
+if(DEFINED SET_PARALLELISM)
+    set(PARALLELISM ${SET_PARALLELISM})
+endif()
+
+message(STATUS "PARALLELISM=${PARALLELISM}")
+
 # Use cmake -DUSER_FLAGS=<flags> to set extra flags for general compilation.
-set(USER_FLAGS ${USER_FLAGS})
+set(USER_FLAGS ${USER_FLAGS};-DLOGN=${LOGN};-DPARALLELISM=${PARALLELISM})
 
 # Use cmake -DUSER_INCLUDE_PATHS=<paths> to set extra paths for general
 # compilation.
-set(USER_INCLUDE_PATHS ../../../../../include;${USER_INCLUDE_PATHS})
+set(USER_INCLUDE_PATHS ../../include;${USER_INCLUDE_PATHS})
 
 ###############################################################################
 ### no changes after here
@@ -90,7 +106,17 @@ else()
     set(QACTYPES "-qactypes")
 endif()
 
-set(COMMON_COMPILE_FLAGS -fsycl -fintelfpga -Wall ${WIN_FLAG} ${QACTYPES} ${USER_FLAGS})
+
+# Check if the target is a BSP
+if(IS_BSP MATCHES "1" OR FPGA_DEVICE MATCHES ".*pac_a10.*|.*pac_s10.*")
+    set(BSP_FLAG "-DIS_BSP")
+else()
+    set(BSP_FLAG "")
+    message(STATUS "The selected target ${FPGA_DEVICE} is assumed to be an FPGA part number, so the IS_BSP macro will not be passed to your C++ code.")
+    message(STATUS "If the target is actually a BSP, run cmake with -DIS_BSP=1 to pass the IS_BSP macro to your C++ code.")
+endif()
+
+set(COMMON_COMPILE_FLAGS -fsycl -fintelfpga -Wall ${WIN_FLAG} ${QACTYPES} ${USER_FLAGS} ${BSP_FLAG})
 set(COMMON_LINK_FLAGS -fsycl -fintelfpga ${QACTYPES} ${USER_FLAGS})
 
 # A SYCL ahead-of-time (AoT) compile processes the device code in two stages.
@@ -102,7 +128,7 @@ set(EMULATOR_COMPILE_FLAGS -DFPGA_EMULATOR)
 set(EMULATOR_LINK_FLAGS )
 set(REPORT_COMPILE_FLAGS -DFPGA_HARDWARE)
 set(REPORT_LINK_FLAGS -Xshardware -Xstarget=${FPGA_DEVICE} ${USER_FPGA_FLAGS} -fsycl-link=early)
-set(SIMULATOR_COMPILE_FLAGS -Xssimulation -DFPGA_SIMULATOR)
+set(SIMULATOR_COMPILE_FLAGS -DFPGA_SIMULATOR)
 set(SIMULATOR_LINK_FLAGS -Xssimulation -Xsghdl -Xstarget=${FPGA_DEVICE} ${USER_FPGA_FLAGS} -reuse-exe=${CMAKE_BINARY_DIR}/${SIMULATOR_OUTPUT_NAME})
 set(FPGA_COMPILE_FLAGS -DFPGA_HARDWARE)
 set(FPGA_LINK_FLAGS -Xshardware -Xstarget=${FPGA_DEVICE} ${USER_FPGA_FLAGS} -reuse-exe=${CMAKE_BINARY_DIR}/${FPGA_OUTPUT_NAME})
@@ -120,7 +146,7 @@ set_target_properties(${EMULATOR_TARGET} PROPERTIES OUTPUT_NAME ${EMULATOR_OUTPU
 ###############################################################################
 ### FPGA Simulator
 ###############################################################################
-add_executable(${SIMULATOR_TARGET} ${SOURCE_FILES})
+add_executable(${SIMULATOR_TARGET} EXCLUDE_FROM_ALL ${SOURCE_FILES})
 target_compile_options(${SIMULATOR_TARGET} PRIVATE ${COMMON_COMPILE_FLAGS})
 target_compile_options(${SIMULATOR_TARGET} PRIVATE ${SIMULATOR_COMPILE_FLAGS})
 target_link_libraries(${SIMULATOR_TARGET} ${COMMON_LINK_FLAGS})
@@ -130,7 +156,7 @@ set_target_properties(${SIMULATOR_TARGET} PROPERTIES OUTPUT_NAME ${SIMULATOR_OUT
 ###############################################################################
 ### Generate Report
 ###############################################################################
-add_executable(${REPORT_TARGET} ${SOURCE_FILES})
+add_executable(${REPORT_TARGET} EXCLUDE_FROM_ALL ${SOURCE_FILES})
 target_compile_options(${REPORT_TARGET} PRIVATE ${COMMON_COMPILE_FLAGS})
 target_compile_options(${REPORT_TARGET} PRIVATE ${REPORT_COMPILE_FLAGS})
 
@@ -262,7 +288,7 @@ endif()
 # Display the compile instructions in the emulation flow
 getCompileCommands("${COMMON_COMPILE_FLAGS}" "${EMULATOR_COMPILE_FLAGS}" "${COMMON_LINK_FLAGS}" "${EMULATOR_LINK_FLAGS}" "${EMULATOR_TARGET}" "${EMULATOR_OUTPUT_NAME}${EXECUTABLE_EXTENSION}")
 
-add_custom_target(  displayEmulationCompileCommands ALL
+add_custom_target(  displayEmulationCompileCommands
                     ${CMAKE_COMMAND} -E cmake_echo_color --cyan ""
                     COMMENT "To compile manually:\n${COMPILE_COMMAND}\nTo link manually:\n${LINK_COMMAND}")
 add_dependencies(${EMULATOR_TARGET} displayEmulationCompileCommands)
@@ -270,7 +296,7 @@ add_dependencies(${EMULATOR_TARGET} displayEmulationCompileCommands)
 # Display the compile instructions in the simulation flow
 getCompileCommands("${COMMON_COMPILE_FLAGS}" "${SIMULATOR_COMPILE_FLAGS}" "${COMMON_LINK_FLAGS}" "${SIMULATOR_LINK_FLAGS}" "${SIMULATOR_TARGET}" "${SIMULATOR_OUTPUT_NAME}${EXECUTABLE_EXTENSION}")
 
-add_custom_target(  displaySimulationCompileCommands ALL
+add_custom_target(  displaySimulationCompileCommands
                     ${CMAKE_COMMAND} -E cmake_echo_color --cyan ""
                     COMMENT "To compile manually:\n${COMPILE_COMMAND}\nTo link manually:\n${LINK_COMMAND}")
 add_dependencies(${SIMULATOR_TARGET} displaySimulationCompileCommands)
@@ -278,7 +304,7 @@ add_dependencies(${SIMULATOR_TARGET} displaySimulationCompileCommands)
 # Display the compile instructions in the report flow
 getCompileCommands("${COMMON_COMPILE_FLAGS}" "${REPORT_COMPILE_FLAGS}" "${MODIFIED_COMMON_LINK_FLAGS_REPORT}" "${REPORT_LINK_FLAGS}" "${REPORT_TARGET}" "${REPORT_OUTPUT_NAME}${EXECUTABLE_EXTENSION}")
 
-add_custom_target(  displayReportCompileCommands ALL
+add_custom_target(  displayReportCompileCommands
                     ${CMAKE_COMMAND} -E cmake_echo_color --cyan ""
                     COMMENT "To compile manually:\n${COMPILE_COMMAND}\nTo link manually:\n${LINK_COMMAND}")
 add_dependencies(${REPORT_TARGET} displayReportCompileCommands)
@@ -286,7 +312,7 @@ add_dependencies(${REPORT_TARGET} displayReportCompileCommands)
 # Display the compile instructions in the fpga flow
 getCompileCommands("${COMMON_COMPILE_FLAGS}" "${FPGA_COMPILE_FLAGS}" "${COMMON_LINK_FLAGS}" "${FPGA_LINK_FLAGS}" "${FPGA_TARGET}" "${FPGA_OUTPUT_NAME}${EXECUTABLE_EXTENSION}")
 
-add_custom_target(  displayFPGACompileCommands ALL
+add_custom_target(  displayFPGACompileCommands
                     ${CMAKE_COMMAND} -E cmake_echo_color --cyan ""
                     COMMENT "To compile manually:\n${COMPILE_COMMAND}\nTo link manually:\n${LINK_COMMAND}")
 add_dependencies(${FPGA_TARGET} displayFPGACompileCommands)
